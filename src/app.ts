@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import produtosRoutes from './routes/produtos';
 
 const app = express();
 
@@ -11,8 +12,6 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Rotas de produtos serão registradas aqui
-// import produtosRoutes from './routes/produtos';
-// app.use('/produtos', produtosRoutes);
+app.use('/produtos', produtosRoutes);
 
 export default app;
