@@ -109,6 +109,7 @@ CREATE TABLE produtos (
 |--------|------|-----------|
 | GET | `/health` | Health check |
 | GET | `/produtos` | Lista todos os produtos |
+| POST | `/produtos` | Cria um novo produto |
 
 ### Exemplo: GET /produtos
 
@@ -128,6 +129,32 @@ Response `200`:
     "criado_em": "2026-08-31T00:00:00.000Z"
   }
 ]
+```
+
+### Exemplo: POST /produtos
+
+Request:
+```bash
+curl -X POST http://localhost:3000/produtos \
+  -H "Content-Type: application/json" \
+  -d '{"nome": "Ibuprofeno 400mg", "descricao": "Anti-inflamatório", "preco": 15.75}'
+```
+
+Response `201`:
+```json
+{
+  "id": 3,
+  "nome": "Ibuprofeno 400mg",
+  "descricao": "Anti-inflamatório",
+  "preco": "15.75",
+  "criado_em": "2026-08-31T00:00:00.000Z"
+}
+```
+
+Erros `400`:
+```json
+{ "error": "Campo \"nome\" é obrigatório e deve ser uma string não vazia" }
+{ "error": "Campo \"preco\" é obrigatório e deve ser um número" }
 ```
 
 ## Estrutura do projeto
