@@ -159,21 +159,21 @@ Erros `400`:
 
 ## Workflow de Git escolhido: Gitflow
 
-Este projeto utiliza **Gitflow** como workflow de versionamento.
+Usei **Gitflow** nesse projeto porque fazia mais sentido com o que foi pedido no enunciado.
 
 ### Por que Gitflow?
 
-Considerando as características exigidas (evolução incremental por feature: `GET /produtos`, `POST /produtos`, documentação), o Gitflow foi escolhido pelos seguintes motivos:
+O exercício pede pra usar Gitflow dividindo cada ponto das “Características da API” em branches/features com commits separados. Então escolhi Gitflow por alguns motivos práticos:
 
-1.  **Isolamento de features**: cada requisito da API vira uma `feature/*` branch a partir de `develop`. Isso evita que código incompleto quebre a integração e permite PRs focados.
-2.  **Branch `develop` como integração**: todas as features são mergeadas em `develop` com `--no-ff`, preservando histórico semântico. Só quando `develop` está estável, gera-se `release`/`main`.
-3.  **Histórico organizado e auditável**: cada ponto das "Características da API" tem commits dedicados, facilitando `git log --graph` e reversão seletiva.
-4.  **Escalabilidade**: mesmo sendo uma API pequena hoje, Gitflow já prepara o time para `hotfix/*` em produção (`main`) e `release/*` para versionamento futuro, ao contrário de Trunk-based que exige CI/CD maduro.
-5.  **Alinhado ao enunciado**: o exercício pede explicitamente "use o workflow gitflow de acordo com cada ponto de características da api" e commits separados para `git push` posterior.
+1.  **Isolamento por feature**: cada entrega (`GET /produtos`, `POST /produtos`, docs) ficou em uma `feature/*` criada a partir de `develop`. Assim não quebro a branch de integração enquanto a feature não está pronta.
+2.  **Branch `develop` como integração**: todas as features são mergeadas em `develop` com `--no-ff` pra manter o histórico certinho. Só quando `develop` ficou estável fiz o merge pra `main`.
+3.  **Histórico organizado**: cada requisito tem seu commit/branch, então fica fácil dar `git log --graph` e se precisar reverter algo é mais tranquilo.
+4.  **Já deixa preparado pra escalar**: mesmo sendo uma API pequena, o Gitflow já deixa `hotfix/*` e `release/*` prontos pra quando precisar. Trunk-based e GitHub Flow são mais simples, mas pedem um CI/CD mais maduro e não separam tão bem `main` (produção) de `develop` (integração).
 
-Alternativas descartadas:
-- **GitHub Flow** (main + feature branches direto): mais simples, mas não entrega separação clara entre `main` (produção) e `develop` (integração) que o Gitflow fornece para múltiplas entregas paralelas.
-- **Trunk-based**: ótimo para deploy contínuo, porém overkill e arriscado sem pipeline robusto de testes.
+Cheguei a considerar:
+
+- **GitHub Flow** (só `main` + feature branches): mais simples, mas perde a separação `main` x `develop` que o Gitflow dá.
+- **Trunk-based**: bom pra deploy contínuo, mas pra esse trabalho seria overkill e mais arriscado sem pipeline de testes.
 
 ### Estrutura de branches do projeto
 

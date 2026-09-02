@@ -9,8 +9,8 @@
     "start": "node dist/server.js",
     "lint": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["clinica", "produtos", "express"],
+  "author": "rillmind",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
