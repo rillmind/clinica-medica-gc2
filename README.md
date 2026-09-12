@@ -85,8 +85,10 @@ API em http://localhost:3000 com hot-reload (`ts-node-dev`).
 
 Outros scripts:
 ```bash
-npm run build   # compila TS -> dist
-npm start       # roda JS compilado (produção)
+npm run build         # compila TS -> dist
+npm start             # roda JS compilado (produção)
+npm test              # executa a suíte de testes com Jest
+npm run test:coverage # executa os testes com relatório e garantia de 90% de cobertura
 ```
 
 ### Banco de dados
@@ -234,20 +236,54 @@ git push origin feature/get-produtos feature/readme-setup feature/post-produtos
 - `chore:` setup/config
 - `feat:` nova funcionalidade (GET, POST)
 - `docs:` documentação
+- `test:` adição ou alteração de testes unitários/integração
+- `ci:` configuração de pipelines de integração contínua (GitHub Actions)
+
+## Integração Contínua (CI / GitHub Actions)
+
+O repositório conta com dois fluxos de trabalho automatizados configurados via GitHub Actions:
+
+1. **`CI - Commits` (`.github/workflows/commit.yml`)**:
+   - **Gatilho**: Disparado a cada evento de commit/push em qualquer branch (`**`).
+   - **Etapas**:
+     - Clonar repositório e alternar para a branch correspondente;
+     - Instalar compilador/interpretador (Node.js 20);
+     - Instalar dependências do projeto (`npm ci`);
+     - Compilar o projeto TypeScript (`npm run build`);
+     - Executar a suíte de testes (`npm test`);
+     - Garantir cobertura mínima de 90% via Jest (`npm run test:coverage`).
+
+2. **`CI - Pull Request` (`.github/workflows/pull-request.yml`)**:
+   - **Gatilho**: Disparado ao abrir, sincronizar ou reabrir Pull Requests para as branches `main` e `develop`.
+   - **Etapas**:
+     - Clonar repositório e alternar para a branch do PR;
+     - Instalar compilador/interpretador (Node.js 20);
+     - Instalar dependências do projeto (`npm ci`);
+     - Compilar o projeto TypeScript (`npm run build`);
+     - Executar a suíte de testes (`npm test`);
+     - Garantir cobertura mínima de 90% via Jest (`npm run test:coverage`).
 
 ## Estrutura do projeto
 
 ```
 .
+├── .github/
+│   └── workflows/
+│       ├── commit.yml          # Pipeline de CI para commits/push
+│       └── pull-request.yml    # Pipeline de CI para Pull Requests
 ├── src/
-│   ├── app.ts              # Configuração Express
-│   ├── server.ts           # Bootstrap + init DB
-│   ├── config/database.ts  # Pool PG
-│   ├── routes/produtos.ts  # Rotas /produtos
-│   └── types/produto.ts    # Interfaces
+│   ├── app.ts                  # Configuração Express
+│   ├── server.ts               # Bootstrap + init DB
+│   ├── config/database.ts      # Pool PG
+│   ├── routes/produtos.ts      # Rotas /produtos
+│   └── types/produto.ts        # Interfaces
+├── tests/
+│   ├── health.test.ts          # Testes do endpoint /health
+│   └── produtos.test.ts        # Testes das rotas /produtos (100% de cobertura)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── init.sql
+├── jest.config.ts              # Configuração do Jest com threshold de 90%
 ├── package.json
 └── tsconfig.json
 ```
