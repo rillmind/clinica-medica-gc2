@@ -218,12 +218,12 @@ A partir desta entrega o projeto usa **GitHub Flow** (a fase anterior usava Gitf
 
 ```
 main (produção, protegida)
-  ├── feature/get-produto-by-id       # GET /produtos/:id (Bryan)
-  ├── feature/delete-produtos         # DELETE /produtos/:id (Raul)
-  ├── feature/testes-novos-endpoints  # testes 404/204, 100% cobertura (Bryan)
-  ├── feature/quality-workflow        # quality.yml + eslint (Raul)
-  └── docs/github-flow-assinatura     # este trecho do README (Bryan)
-homolog (pré-produção, protegida, espelha main antes do deploy)
+  └── develop (integração, protegida)
+        ├── feature/get-produto-by-id       # GET /produtos/:id (Bryan)
+        ├── feature/delete-produtos         # DELETE /produtos/:id (Raul)
+        ├── feature/testes-novos-endpoints  # testes 404/204, 100% cobertura (Bryan)
+        ├── feature/quality-workflow        # quality.yml + eslint (Raul)
+        └── docs/github-flow-assinatura     # este trecho do README (Bryan)
 ```
 
 ### Histórico de commits (como foi executado, todos assinados)
@@ -296,13 +296,16 @@ Todos os commits são assinados (`git commit -S`, GPG) e alternam autores `Bryan
 
 Configurar em `GitHub > Settings > Branches > Add classic branch protection rule`:
 
-- `main` (produção) e `homolog` (pré-produção):
+- `main` (produção):
   - [x] `Require a pull request before merging` (mín. 1 approval, `Dismiss stale approvals`)
   - [x] `Require status checks before merging` → exigir `Quality / Qualidade (testes, cobertura e linter)`
   - [x] `Require signed commits` (ou `Require verified signatures` — todos os commits `-S`)
   - [x] `Do not allow bypassing the above settings`
   - [x] `Restrict who can push` (só via PR, sem push direto)
-- Fluxo: `feature/*` → PR → `homolog` (validação) → PR → `main` (deploy).
+- `develop` (homologação/integração, estilo já em uso):
+  - [x] `Require a pull request before merging`
+  - [x] `Require status checks before merging` → exigir `Quality`
+- Fluxo: `feature/*` → PR → `develop` (validação) → PR → `main` (deploy).
 
 ## Integração Contínua (CI / GitHub Actions)
 
@@ -329,13 +332,13 @@ O repositório conta com dois fluxos de trabalho automatizados configurados via 
      - Garantir cobertura mínima de 90% via Jest (`npm run test:coverage`).
 
 3. **`Quality` (`.github/workflows/quality.yml`) — job de qualidade**:
-   - **Gatilho**: `push` em qualquer branch + PR para `main`, `homolog`, `develop`.
+   - **Gatilho**: `push` em qualquer branch + PR para `main`, `develop`.
    - **Etapas**:
      - Compilar o projeto (`npm run build`);
      - Verificação de linter (`npm run lint` = `tsc --noEmit` + `eslint src tests --max-warnings 0`);
      - Execução dos testes de unidade e integração (`npm test`);
      - Verificação da cobertura de código (`npm run test:coverage`, threshold 90% — atual em 100%).
-   - Esse é o check obrigatório na proteção de `main`/`homolog`.
+   - Esse é o check obrigatório na proteção de `main`/`develop`.
 
 ## Estrutura do projeto
 
