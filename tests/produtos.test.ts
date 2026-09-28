@@ -179,4 +179,111 @@ describe('Rotas de Produtos (/produtos)', () => {
       });
     });
   });
+
+  describe('GET /produtos/:id', () => {
+    it('deve retornar 200 e o produto quando existir', async () => {
+      const mockProduto = {
+        id: 1,
+        nome: 'Dipirona 500mg',
+        descricao: 'Analgésico e antitérmico',
+        preco: '12.50',
+        criado_em: '2026-09-01T00:00:00.000Z',
+      };
+
+      mockedPool.query.mockResolvedValueOnce({ rows: [mockProduto] });
+
+      const response = await request(app).get('/produtos/1');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockProduto);
+      expect(mockedPool.query).toHaveBeenCalledWith(
+        'SELECT id, nome, descricao, preco, criado_em FROM produtos WHERE id = $1',
+        [1]
+      );
+    });
+
+    it('deve retornar 404 quando o produto não existir', async () => {
+      mockedPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app).get('/produtos/999');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Produto não encontrado' });
+    });
+
+    it('deve retornar 400 quando o id for inválido (texto)', async () => {
+      const response = await request(app).get('/produtos/abc');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'Parâmetro "id" deve ser um número inteiro positivo',
+      });
+      expect(mockedPool.query).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar 400 quando o id for zero ou negativo', async () => {
+      const responseZero = await request(app).get('/produtos/0');
+      expect(responseZero.status).toBe(400);
+
+      const responseNeg = await request(app).get('/produtos/-5');
+      expect(responseNeg.status).toBe(400);
+    });
+
+    it('deve retornar 500 quando ocorrer erro no banco ao buscar por id', async () => {
+      mockedPool.query.mockRejectedValueOnce(new Error('Falha no banco'));
+
+      const response = await request(app).get('/produtos/1');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Erro interno ao buscar produto' });
+    });
+  });
+
+  describe('DELETE /produtos/:id', () => {
+    it('deve retornar 204 e remover o produto quando existir', async () => {
+      mockedPool.query.mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+      const response = await request(app).delete('/produtos/1');
+
+      expect(response.status).toBe(204);
+      expect(response.text).toBe('');
+      expect(mockedPool.query).toHaveBeenCalledWith('DELETE FROM produtos WHERE id = $1', [1]);
+    });
+
+    it('deve retornar 404 quando o produto não existir', async () => {
+      mockedPool.query.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+
+      const response = await request(app).delete('/produtos/999');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Produto não encontrado' });
+    });
+
+    it('deve retornar 400 quando o id for inválido (texto)', async () => {
+      const response = await request(app).delete('/produtos/abc');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'Parâmetro "id" deve ser um número inteiro positivo',
+      });
+      expect(mockedPool.query).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar 400 quando o id for zero ou negativo', async () => {
+      const responseZero = await request(app).delete('/produtos/0');
+      expect(responseZero.status).toBe(400);
+
+      const responseNeg = await request(app).delete('/produtos/-2');
+      expect(responseNeg.status).toBe(400);
+    });
+
+    it('deve retornar 500 quando ocorrer erro no banco ao remover', async () => {
+      mockedPool.query.mockRejectedValueOnce(new Error('Falha no banco'));
+
+      const response = await request(app).delete('/produtos/1');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Erro interno ao remover produto' });
+    });
+  });
 });
