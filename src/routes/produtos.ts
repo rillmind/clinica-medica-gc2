@@ -20,6 +20,34 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 /**
+ * GET /produtos/:id
+ * Retorna um produto pelo id
+ */
+router.get('/:id', async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Parâmetro "id" deve ser um número inteiro positivo' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, nome, descricao, preco, criado_em FROM produtos WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado' });
+    }
+
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro ao buscar produto:', error);
+    return res.status(500).json({ error: 'Erro interno ao buscar produto' });
+  }
+});
+
+/**
  * POST /produtos
  * Cria um novo produto
  * Body: { nome: string, descricao?: string, preco: number }
@@ -50,6 +78,32 @@ router.post('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro ao criar produto:', error);
     return res.status(500).json({ error: 'Erro interno ao criar produto' });
+  }
+});
+
+/**
+ * DELETE /produtos/:id
+ * Remove um produto pelo id
+ * 204 se removido, 404 se não existe, 400 se id inválido
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Parâmetro "id" deve ser um número inteiro positivo' });
+  }
+
+  try {
+    const result = await pool.query('DELETE FROM produtos WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado' });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Erro ao remover produto:', error);
+    return res.status(500).json({ error: 'Erro interno ao remover produto' });
   }
 });
 

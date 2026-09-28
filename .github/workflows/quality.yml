@@ -1,0 +1,43 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
+
+jobs:
+  quality:
+    name: Qualidade (testes, cobertura e linter)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositório
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Instalar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Compilar o projeto (TypeScript)
+        run: npm run build
+
+      - name: Verificação de linter (tsc + eslint)
+        run: npm run lint
+
+      - name: Execução dos testes de unidade e integração
+        run: npm test
+
+      - name: Verificação da cobertura de código (>=90%)
+        run: npm run test:coverage

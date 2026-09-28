@@ -7,9 +7,17 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "lint": "tsc --noEmit"
+    "lint": "npm run lint:types && npm run lint:eslint",
+    "lint:types": "tsc --noEmit",
+    "lint:eslint": "eslint src tests --max-warnings 0",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
-  "keywords": ["clinica", "produtos", "express"],
+  "keywords": [
+    "clinica",
+    "produtos",
+    "express"
+  ],
   "author": "rillmind",
   "license": "ISC",
   "dependencies": {
@@ -19,11 +27,20 @@
     "pg": "^8.11.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.12.12",
     "@types/pg": "^8.11.0",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "jest": "^30.5.1",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.12",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.71.0"
   }
 }
