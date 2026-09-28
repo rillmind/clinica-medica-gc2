@@ -81,4 +81,30 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * DELETE /produtos/:id
+ * Remove um produto pelo id
+ * 204 se removido, 404 se não existe, 400 se id inválido
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Parâmetro "id" deve ser um número inteiro positivo' });
+  }
+
+  try {
+    const result = await pool.query('DELETE FROM produtos WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado' });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Erro ao remover produto:', error);
+    return res.status(500).json({ error: 'Erro interno ao remover produto' });
+  }
+});
+
 export default router;
