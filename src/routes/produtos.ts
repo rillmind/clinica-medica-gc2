@@ -60,7 +60,7 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Campo "nome" é obrigatório e deve ser uma string não vazia' });
   }
 
-  if (preco === undefined || preco === null || isNaN(Number(preco))) {
+  if (preco === undefined || preco === null || Number.isNaN(Number(preco))) {
     return res.status(400).json({ error: 'Campo "preco" é obrigatório e deve ser um número' });
   }
 
