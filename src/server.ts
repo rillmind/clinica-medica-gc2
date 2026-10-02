@@ -4,7 +4,7 @@ import pool, { initDatabase } from './config/database';
 
 dotenv.config();
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
 async function start() {
   try {
@@ -28,4 +28,4 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-start();
+void start();
