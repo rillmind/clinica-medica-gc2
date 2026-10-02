@@ -4,7 +4,15 @@ import produtosRoutes from './routes/produtos';
 
 const app = express();
 
-app.use(cors());
+app.disable('x-powered-by');
+
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:3000'];
+
+app.use(cors({
+  origin: allowedOrigins,
+}));
 app.use(express.json());
 
 // Health check
