@@ -26,7 +26,7 @@ jobs:
 
       # 3. Instalar as dependências do seu projeto
       - name: Instalar as dependências do projeto
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       # 4. (se compilada) compilar o projeto
       - name: Compilar o projeto (TypeScript)
