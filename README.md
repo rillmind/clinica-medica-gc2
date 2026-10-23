@@ -2,6 +2,12 @@
 
 API REST em **TypeScript + Node.js + Express** com **PostgreSQL** via **Docker Compose** para gerenciamento de produtos da clínica.
 
+## Por que existe
+
+É o projeto da disciplina de Gestão de Configuração II (IFPE, 2026.2). O foco não é a API em si,
+mas o processo em volta dela: workflow de branches (GitHub Flow), commits assinados com GPG,
+proteção de branch e integração contínua com testes, linter e cobertura mínima.
+
 ## Stack
 
 - Node.js 20 + TypeScript 5
@@ -104,6 +110,33 @@ CREATE TABLE produtos (
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+## Como testar
+
+Os testes usam Jest + Supertest com o banco simulado (`jest.mock`), então não precisam do
+PostgreSQL rodando:
+
+```bash
+npm ci
+npm test              # 2 suítes, 23 testes
+npm run test:coverage # falha se a cobertura ficar abaixo de 90%
+npm run lint          # tsc --noEmit + eslint
+```
+
+Para conferir a API de ponta a ponta, suba o banco e a API (Opção 2 acima) e faça:
+
+```bash
+curl localhost:3000/health   # {"status":"ok","timestamp":"..."}
+curl -X POST localhost:3000/produtos -H 'content-type: application/json' \
+  -d '{"nome":"Dipirona","descricao":"Analgésico","preco":12.5}'
+curl localhost:3000/produtos
+```
+
+Com Podman em vez de Docker, `podman-compose up db -d` funciona do mesmo jeito. Já o serviço
+`api` do compose não sobe em hosts com SELinux (Fedora, por exemplo): o volume `.:/app` fica sem
+permissão de leitura (`EACCES` em `/app/package.json`). Nesse caso, use a Opção 2. O
+`.env.example` traz `DB_HOST=db`, mas funciona fora do contêiner porque a conexão usa o
+`DATABASE_URL`, que aponta para `localhost`.
 
 ## Endpoints
 
