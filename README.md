@@ -1,5 +1,12 @@
 # Clínica Médica GC2 - API de Produtos
 
+[![Quality CI/CD](https://github.com/rillmind/clinica-medica-gc2/actions/workflows/quality.yml/badge.svg)](https://github.com/rillmind/clinica-medica-gc2/actions/workflows/quality.yml)
+[![DockerHub](https://badgen.net/badge/icon/dockerhub?icon=docker&label=bryanbelo%2Fclinica-medica-gc2&color=blue)](https://hub.docker.com/r/bryanbelo/clinica-medica-gc2)
+[![Docker Pulls](https://badgen.net/docker/pulls/bryanbelo/clinica-medica-gc2?icon=docker&label=pulls)](https://hub.docker.com/r/bryanbelo/clinica-medica-gc2)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rillmind_clinica-medica-gc2&metric=alert_status)](https://sonarcloud.io/project/overview?id=rillmind_clinica-medica-gc2)
+[![Coverage](https://badgen.net/badge/coverage/100%25/green)](https://github.com/rillmind/clinica-medica-gc2)
+[![License](https://badgen.net/badge/license/ISC/grey)](LICENSE)
+
 API REST em **TypeScript + Node.js + Express** com **PostgreSQL** via **Docker Compose** para gerenciamento de produtos da clínica.
 
 ## Por que existe
@@ -14,6 +21,31 @@ proteção de branch e integração contínua com testes, linter e cobertura mí
 - Express 4
 - PostgreSQL 15 (Docker)
 - pg (node-postgres)
+
+## 🐳 Imagens Docker no DockerHub
+
+As imagens da aplicação são construídas e publicadas automaticamente no **DockerHub** através do pipeline de CI/CD do GitHub Actions:
+
+- 📦 **Repositório oficial no DockerHub:** [https://hub.docker.com/r/bryanbelo/clinica-medica-gc2](https://hub.docker.com/r/bryanbelo/clinica-medica-gc2)
+- 🏷️ **Tags disponíveis:**
+  - `:latest` — Imagem correspondente à última versão estável na branch principal (`main`).
+  - `:<commit-sha>` — Tag imutável baseada no hash do commit da baseline.
+
+### Como baixar e rodar a imagem do DockerHub
+
+```bash
+# 1. Baixar a imagem do DockerHub
+docker pull bryanbelo/clinica-medica-gc2:latest
+
+# 2. Executar o container conectado ao Postgres
+docker run -d \
+  --name clinica_api \
+  -p 3000:3000 \
+  -e PORT=3000 \
+  -e DATABASE_URL=postgres://postgres:postgres@host.docker.internal:5432/clinica \
+  bryanbelo/clinica-medica-gc2:latest
+```
+
 
 ## Pré-requisitos
 
@@ -250,8 +282,10 @@ A partir desta entrega o projeto usa **GitHub Flow** (a fase anterior usava Gitf
 ### Estrutura de branches do projeto (fase atual)
 
 ```
-main (produção, protegida)
+main (produção, baseline, protegida)
   └── develop (integração, protegida)
+        ├── feature/docker-ci-cd            # CI/CD: build Docker + publish DockerHub + badges (Bryan e Raul)
+        ├── fix/sonarqube-analysis          # 13 correções SonarQube / Clean Code
         ├── feature/get-produto-by-id       # GET /produtos/:id (Bryan)
         ├── feature/delete-produtos         # DELETE /produtos/:id (Raul)
         ├── feature/testes-novos-endpoints  # testes 404/204, 100% cobertura (Bryan)
@@ -364,14 +398,21 @@ O repositório conta com dois fluxos de trabalho automatizados configurados via 
      - Executar a suíte de testes (`npm test`);
      - Garantir cobertura mínima de 90% via Jest (`npm run test:coverage`).
 
-3. **`Quality` (`.github/workflows/quality.yml`) — job de qualidade**:
-   - **Gatilho**: `push` em qualquer branch + PR para `main`, `develop`.
-   - **Etapas**:
-     - Compilar o projeto (`npm run build`);
-     - Verificação de linter (`npm run lint` = `tsc --noEmit` + `eslint src tests --max-warnings 0`);
-     - Execução dos testes de unidade e integração (`npm test`);
-     - Verificação da cobertura de código (`npm run test:coverage`, threshold 90% — atual em 100%).
-   - Esse é o check obrigatório na proteção de `main`/`develop`.
+3. **`Quality & Docker CI/CD` (`.github/workflows/quality.yml`) — Pipeline da Baseline**:
+   - **Gatilho**: `push` em qualquer branch (`**`) + `pull_request` para `main` e `develop`.
+   - **Jobs automatizados**:
+     - **`Qualidade (testes, cobertura e linter)`**:
+       - Instala dependências limpas (`npm ci --ignore-scripts`);
+       - Compila TypeScript (`npm run build`);
+       - Executa verificação de linter e tipos (`npm run lint`);
+       - Executa testes unitários com Jest e valida cobertura mínima de 90% (`npm run test:coverage`).
+     - **`Construção da Imagem Docker`**:
+       - Executado em **qualquer branch** a cada modificação (`push`/`PR`);
+       - Constrói o contêiner via `docker/build-push-action` sem efetuar push, garantindo a integridade do `Dockerfile`.
+     - **`Publicação da Imagem no DockerHub`**:
+       - Executado **apenas quando houver mudança na baseline (`main`)** via push direto ou merge de PR;
+       - Autentica no DockerHub usando segredos (`DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN`);
+       - Constrói e publica as tags `:latest` e `:<commit-sha>` no repositório oficial [bryanbelo/clinica-medica-gc2](https://hub.docker.com/r/bryanbelo/clinica-medica-gc2).
 
 ## Estrutura do projeto
 
