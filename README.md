@@ -296,10 +296,6 @@ main (produção, baseline, protegida)
 ### Histórico de commits (como foi executado, todos assinados)
 
 ```bash
-# chaves (uma por dev, geradas localmente)
-gpg --full-generate-key  # Raul Holanda Lopes <raulzc00@gmail.com>
-gpg --full-generate-key  # Bryan Belo <Bryanbeloo4224@hotmail.com>
-gpg --armor --export <KEYID>  # subir em GitHub > Settings > SSH and GPG keys
 git config --global commit.gpgsign true
 git config --global user.signingkey <KEYID>
 
@@ -338,21 +334,14 @@ Todos os commits são assinados (`git commit -S`, GPG) e alternam autores `Bryan
 
 ## Commits assinados (GPG)
 
-1. Gerar (um par por dev; aqui foram gerados os dois localmente para a entrega — o Bryan pode gerar outro na máquina dele depois sem invalidar os antigos):
-   ```bash
-   gpg --full-generate-key
-   gpg --list-secret-keys --keyid-format LONG
-   gpg --armor --export <KEYID>  # chave pública
-   ```
-2. Subir a pública no GitHub: `Settings > SSH and GPG keys > New GPG key` (cada dev na sua conta; a pública gerada nesta máquina para o Bryan deve ser cadastrada na conta dele).
-3. Configurar:
+1. Configurar:
    ```bash
    git config --global gpg.program gpg
    git config --global commit.gpgsign true
    git config --global tag.gpgsign true
    git config --global user.signingkey <SEU_KEYID>
    ```
-4. Commit assinado alternando autor:
+2. Commit assinado alternando autor:
    ```bash
    git -c user.name="Bryan Belo" -c user.email="Bryanbeloo4224@hotmail.com" -c user.signingkey=<KEY_BRYAN> commit -S -m "feat: ..."
    git -c user.name="Raul Holanda Lopes" -c user.email="raulzc00@gmail.com" -c user.signingkey=<KEY_RAUL> commit -S -m "feat: ..."
