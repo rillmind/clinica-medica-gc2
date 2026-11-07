@@ -7,7 +7,7 @@ export DEBIAN_FRONTEND=noninteractive
 if ! command -v node >/dev/null || [[ "$(node --version)" != v20.* ]]; then
   apt-get update -y
   apt-get install -y ca-certificates curl
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  curl --proto '=https' --tlsv1.2 -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get install -y nodejs
 fi
 

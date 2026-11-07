@@ -17,7 +17,7 @@ systemctl restart clinica-api
 
 for _ in $(seq 1 30); do
   if curl -fs http://localhost:3000/health >/dev/null; then
-    echo "API disponível em http://192.168.56.11:3000"
+    echo "API disponível em 192.168.56.11, porta 3000"
     exit 0
   fi
   sleep 1
