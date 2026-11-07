@@ -302,13 +302,9 @@ git config --global user.signingkey <KEYID>
 # GitHub Flow a partir da main
 git checkout main
 git checkout -b feature/get-produto-by-id
-git -c user.name="Bryan Belo" -c user.email="Bryanbeloo4224@hotmail.com" \
-  -c user.signingkey=<KEY_BRYAN> commit -S -m "feat: adiciona rota GET /produtos/:id com 404 quando não existe"
 git checkout main && git merge --no-ff feature/get-produto-by-id  # via PR
 
 git checkout -b feature/delete-produtos
-git -c user.name="Raul Holanda Lopes" -c user.email="raulzc00@gmail.com" \
-  -c user.signingkey=<KEY_RAUL> commit -S -m "feat: adiciona rota DELETE /produtos/:id com 404 e 204"
 
 git checkout -b feature/testes-novos-endpoints
 # test: adiciona testes para GET by id e DELETE com 404 e 204 (Bryan, -S)
@@ -341,10 +337,8 @@ Todos os commits são assinados (`git commit -S`, GPG) e alternam autores `Bryan
    git config --global tag.gpgsign true
    git config --global user.signingkey <SEU_KEYID>
    ```
-2. Commit assinado alternando autor:
+2. Conferir a assinatura dos commits:
    ```bash
-   git -c user.name="Bryan Belo" -c user.email="Bryanbeloo4224@hotmail.com" -c user.signingkey=<KEY_BRYAN> commit -S -m "feat: ..."
-   git -c user.name="Raul Holanda Lopes" -c user.email="raulzc00@gmail.com" -c user.signingkey=<KEY_RAUL> commit -S -m "feat: ..."
    git log --show-signature --oneline  # G = válida
    ```
 
