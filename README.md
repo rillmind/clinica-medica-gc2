@@ -268,6 +268,79 @@ Erro `404` (não existe):
 { "error": "Produto não encontrado" }
 ```
 
+## Infraestrutura com Vagrant
+
+O `Vagrantfile` cria duas VMs Ubuntu 24.04 no provedor VirtualBox:
+
+| VM | Função | Memória | IP privado (Classe C) |
+|----|--------|---------|-----------------------|
+| `vm1` | Cliente para testar a API | 1024 MB | `192.168.56.10` |
+| `vm2` | API Node.js + PostgreSQL | 2048 MB | `192.168.56.11` |
+
+Na `vm2`, a pasta do projeto é sincronizada em `/vagrant_data`. O provisionamento instala o Node.js 20 e o PostgreSQL, cria o banco, compila a aplicação e a executa como o serviço `clinica-api`, na porta 3000.
+
+### Pré-requisitos
+
+- [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+- [Vagrant](https://developer.hashicorp.com/vagrant/install)
+
+O VirtualBox 7.2 exige o Vagrant 2.4.9 ou mais recente. No Linux, os módulos `vboxdrv`, `vboxnetadp` e `vboxnetflt` precisam estar carregados (`sudo modprobe -a vboxdrv vboxnetadp vboxnetflt`).
+
+### Passo a passo
+
+1. Na raiz do repositório, suba as duas VMs (a primeira execução baixa a imagem e instala as dependências):
+   ```bash
+   vagrant up
+   ```
+
+2. Confira se as duas aparecem como `running`:
+   ```bash
+   vagrant status
+   ```
+
+3. Entre na VM1:
+   ```bash
+   vagrant ssh vm1
+   ```
+
+4. Dentro da VM1, teste a rota GET da API que está na VM2, com `curl`:
+   ```bash
+   curl -i http://192.168.56.11:3000/produtos
+   ```
+
+   Ou com `wget`:
+   ```bash
+   wget -qO- http://192.168.56.11:3000/produtos
+   ```
+
+   A resposta esperada é `200 OK` com os produtos de exemplo do `init.sql`:
+   ```json
+   [
+     {
+       "id": 1,
+       "nome": "Dipirona 500mg",
+       "descricao": "Analgésico e antitérmico",
+       "preco": "12.50",
+       "criado_em": "2026-08-31T00:00:00.000Z"
+     },
+     {
+       "id": 2,
+       "nome": "Paracetamol 750mg",
+       "descricao": "Analgésico",
+       "preco": "8.90",
+       "criado_em": "2026-08-31T00:00:00.000Z"
+     }
+   ]
+   ```
+
+5. Saia da VM1 com `exit`. Para desligar ou remover as VMs:
+   ```bash
+   vagrant halt      # desliga
+   vagrant destroy -f  # remove
+   ```
+
+Para ver os logs da API, rode `vagrant ssh vm2 -c "journalctl -u clinica-api -n 50"`. Depois de alterar o código, `vagrant reload vm2` recompila e reinicia a aplicação.
+
 ## Workflow de Git escolhido: GitHub Flow
 
 A partir desta entrega o projeto usa **GitHub Flow** (a fase anterior usava Gitflow com `main + develop`; o histórico antigo foi mantido).
@@ -390,6 +463,10 @@ O repositório conta com dois fluxos de trabalho automatizados configurados via 
 ├── tests/
 │   ├── health.test.ts          # Testes do endpoint /health
 │   └── produtos.test.ts        # Testes das rotas /produtos (100% de cobertura)
+├── provision/
+│   ├── vm2-dependencias.sh     # Instala Node.js e PostgreSQL e prepara o banco na VM2
+│   └── vm2-aplicacao.sh        # Compila e executa a API na VM2
+├── Vagrantfile                 # VMs vm1 e vm2 no VirtualBox
 ├── docker-compose.yml
 ├── Dockerfile
 ├── init.sql

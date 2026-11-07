@@ -6,3 +6,4 @@ coverage
 .github
 tests
 .env*
+.vagrant/
