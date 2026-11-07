@@ -12,7 +12,7 @@ API REST em **TypeScript + Node.js + Express** com **PostgreSQL** via **Docker C
 ## Por que existe
 
 É o projeto da disciplina de Gestão de Configuração II (IFPE, 2026.2). O foco não é a API em si,
-mas o processo em volta dela: workflow de branches (GitHub Flow), commits assinados com GPG,
+mas o processo em volta dela: workflow de branches (GitHub Flow),
 proteção de branch e integração contínua com testes, linter e cobertura mínima.
 
 ## Stack
@@ -276,8 +276,6 @@ A partir desta entrega o projeto usa **GitHub Flow** (a fase anterior usava Gitf
 
 1. **Simplicidade**: só `main` (produção) + branches curtas `feature/*` / `docs/*` + Pull Request.
 2. **CI como portão**: nenhum merge entra sem `Quality` verde (build + lint + testes + cobertura >=90%).
-3. **Commits assinados obrigatórios**: todo commit é `-S` (GPG) e a proteção exige assinatura verificada.
-4. **Alternância de autores**: commits alternados entre Bryan Belo e Raul Holanda Lopes, mantendo o padrão `feat:/test:/ci:/docs:`.
 
 ### Estrutura de branches do projeto (fase atual)
 
@@ -289,16 +287,12 @@ main (produção, baseline, protegida)
         ├── feature/get-produto-by-id       # GET /produtos/:id (Bryan)
         ├── feature/delete-produtos         # DELETE /produtos/:id (Raul)
         ├── feature/testes-novos-endpoints  # testes 404/204, 100% cobertura (Bryan)
-        ├── feature/quality-workflow        # quality.yml + eslint (Raul)
-        └── docs/github-flow-assinatura     # este trecho do README (Bryan)
+        └── feature/quality-workflow        # quality.yml + eslint (Raul)
 ```
 
-### Histórico de commits (como foi executado, todos assinados)
+### Histórico de commits (como foi executado)
 
 ```bash
-git config --global commit.gpgsign true
-git config --global user.signingkey <KEYID>
-
 # GitHub Flow a partir da main
 git checkout main
 git checkout -b feature/get-produto-by-id
@@ -307,15 +301,12 @@ git checkout main && git merge --no-ff feature/get-produto-by-id  # via PR
 git checkout -b feature/delete-produtos
 
 git checkout -b feature/testes-novos-endpoints
-# test: adiciona testes para GET by id e DELETE com 404 e 204 (Bryan, -S)
+# test: adiciona testes para GET by id e DELETE com 404 e 204 (Bryan)
 
 git checkout -b feature/quality-workflow
-# ci: adiciona job de qualidade com testes, cobertura e linter (Raul, -S)
+# ci: adiciona job de qualidade com testes, cobertura e linter (Raul)
 
-git checkout -b docs/github-flow-assinatura
-# docs: migra README para GitHub Flow e documenta assinatura GPG + proteção (Bryan, -S)
-
-git log --show-signature --oneline --graph  # G = assinatura válida
+git log --oneline --graph
 ```
 
 ### Convenção de commits
@@ -326,22 +317,6 @@ git log --show-signature --oneline --graph  # G = assinatura válida
 - `test:` adição ou alteração de testes unitários/integração
 - `ci:` configuração de pipelines de integração contínua (GitHub Actions)
 
-Todos os commits são assinados (`git commit -S`, GPG) e alternam autores `Bryan Belo <Bryanbeloo4224@hotmail.com>` / `Raul Holanda Lopes <raulzc00@gmail.com>`.
-
-## Commits assinados (GPG)
-
-1. Configurar:
-   ```bash
-   git config --global gpg.program gpg
-   git config --global commit.gpgsign true
-   git config --global tag.gpgsign true
-   git config --global user.signingkey <SEU_KEYID>
-   ```
-2. Conferir a assinatura dos commits:
-   ```bash
-   git log --show-signature --oneline  # G = válida
-   ```
-
 ## Proteção de branches (homologação e produção)
 
 Configurar em `GitHub > Settings > Branches > Add classic branch protection rule`:
@@ -349,7 +324,6 @@ Configurar em `GitHub > Settings > Branches > Add classic branch protection rule
 - `main` (produção):
   - [x] `Require a pull request before merging` (mín. 1 approval, `Dismiss stale approvals`)
   - [x] `Require status checks before merging` → exigir `Quality / Qualidade (testes, cobertura e linter)`
-  - [x] `Require signed commits` (ou `Require verified signatures` — todos os commits `-S`)
   - [x] `Do not allow bypassing the above settings`
   - [x] `Restrict who can push` (só via PR, sem push direto)
 - `develop` (homologação/integração, estilo já em uso):
