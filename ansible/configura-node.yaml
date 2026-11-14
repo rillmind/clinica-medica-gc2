@@ -23,19 +23,18 @@
           - curl
           - git
           - postgresql
+          - python3-debian # exigido pelo deb822_repository
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Baixa a chave do repositório do NodeSource
-      ansible.builtin.get_url:
-        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
-        dest: /etc/apt/keyrings/nodesource.asc
-        mode: "0644"
-
+    # A chave do NodeSource fica embutida no .sources, sem arquivo separado.
     - name: Adiciona o repositório do Node.js 20
-      ansible.builtin.apt_repository:
-        repo: deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_20.x nodistro main
-        filename: nodesource
+      ansible.builtin.deb822_repository:
+        name: nodesource
+        uris: https://deb.nodesource.com/node_20.x
+        suites: nodistro
+        components: main
+        signed_by: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
 
     - name: Instala o Node.js 20
       ansible.builtin.apt:
@@ -59,7 +58,7 @@
         state: directory
         owner: "{{ app_usuario }}"
         group: "{{ app_usuario }}"
-        mode: "0755"
+        mode: "0750"
 
     - name: Clona o repositório
       become_user: "{{ app_usuario }}"
@@ -78,15 +77,20 @@
 
     # O init.sql insere dados de exemplo, então só roda quando o banco é criado.
     - name: Cria o banco e carrega o init.sql
-      become_user: postgres
       when: banco.stdout != "1"
       block:
         - name: Cria o banco
+          become_user: postgres
           ansible.builtin.command: createdb {{ db_nome }}
           changed_when: true
 
+        # Roda como o usuário da aplicação, via TCP, porque o postgres não
+        # tem acesso à pasta da aplicação.
         - name: Carrega o init.sql
-          ansible.builtin.command: psql -v ON_ERROR_STOP=1 -d {{ db_nome }} -f {{ app_dir }}/init.sql
+          become_user: "{{ app_usuario }}"
+          ansible.builtin.command: >-
+            psql -v ON_ERROR_STOP=1 -f {{ app_dir }}/init.sql
+            postgres://postgres:{{ db_senha }}@localhost:5432/{{ db_nome }}
           changed_when: true
 
     - name: Verifica se a aplicação já foi compilada
@@ -115,7 +119,7 @@
       ansible.builtin.template:
         src: templates/clinica-api.service.j2
         dest: /etc/systemd/system/clinica-api.service
-        mode: "0644"
+        mode: "0640"
       notify: Reinicia a API
 
     - name: Habilita e inicia a API
