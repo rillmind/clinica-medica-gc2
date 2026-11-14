@@ -274,10 +274,10 @@ O `Vagrantfile` cria duas VMs Ubuntu 24.04 no provedor VirtualBox:
 
 | VM | Função | Memória | IP privado (Classe C) |
 |----|--------|---------|-----------------------|
-| `vm1` | Cliente para testar a API | 1024 MB | `192.168.56.10` |
-| `vm2` | API Node.js + PostgreSQL | 2048 MB | `192.168.56.11` |
+| `vm1` | Nó de controle do Ansible e cliente para testar a API | 1024 MB | `192.168.56.10` |
+| `vm2` | API Node.js + PostgreSQL (configurada pelo Ansible) | 2048 MB | `192.168.56.11` |
 
-Na `vm2`, a pasta do projeto é sincronizada em `/vagrant_data`. O provisionamento instala o Node.js 20 e o PostgreSQL, cria o banco, compila a aplicação e a executa como o serviço `clinica-api`, na porta 3000.
+O Vagrant só cria as máquinas. Quem instala a aplicação na `vm2` é o Ansible, executado a partir da `vm1` (veja [Configuração com Ansible](#configuração-com-ansible)).
 
 ### Pré-requisitos
 
@@ -288,10 +288,12 @@ O VirtualBox 7.2 exige o Vagrant 2.4.9 ou mais recente. No Linux, os módulos `v
 
 ### Passo a passo
 
-1. Na raiz do repositório, suba as duas VMs (a primeira execução baixa a imagem e instala as dependências):
+1. Na raiz do repositório, suba as duas VMs (a primeira execução baixa a imagem e instala o Ansible na `vm1`):
    ```bash
    vagrant up
    ```
+
+   Suba sempre a `vm1` antes da `vm2` (o `vagrant up` sem argumentos já faz isso): a `vm2` precisa da chave SSH gerada pela `vm1`.
 
 2. Confira se as duas aparecem como `running`:
    ```bash
@@ -303,7 +305,13 @@ O VirtualBox 7.2 exige o Vagrant 2.4.9 ou mais recente. No Linux, os módulos `v
    vagrant ssh vm1
    ```
 
-4. Dentro da VM1, teste a rota GET da API que está na VM2, com `curl`:
+4. Dentro da VM1, execute o playbook que instala a aplicação na VM2:
+   ```bash
+   cd ~/ansible
+   ansible-playbook configura-node.yaml
+   ```
+
+5. Ainda na VM1, teste a rota GET da API que está na VM2, com `curl`:
    ```bash
    curl -i http://192.168.56.11:3000/produtos
    ```
@@ -333,13 +341,83 @@ O VirtualBox 7.2 exige o Vagrant 2.4.9 ou mais recente. No Linux, os módulos `v
    ]
    ```
 
-5. Saia da VM1 com `exit`. Para desligar ou remover as VMs:
+6. Saia da VM1 com `exit`. Para desligar ou remover as VMs:
    ```bash
    vagrant halt      # desliga
    vagrant destroy -f  # remove
    ```
 
-Para ver os logs da API, rode `vagrant ssh vm2 -c "journalctl -u clinica-api -n 50"`. Depois de alterar o código, `vagrant reload vm2` recompila e reinicia a aplicação.
+Para ver os logs da API, rode `vagrant ssh vm2 -c "journalctl -u clinica-api -n 50"`. Depois de enviar mudanças para a `main`, rode o playbook de novo: ele atualiza o clone, recompila e reinicia a aplicação.
+
+## Configuração com Ansible
+
+A `vm1` é o nó de controle: o provisionamento do Vagrant (`provision/vm1-ansible.sh`) instala o `ansible-core` e gera uma chave SSH, que a `vm2` autoriza no próprio provisionamento (`provision/vm2-chave-ssh.sh`). A pasta `ansible/` do repositório é montada na `vm1` em `/home/vagrant/ansible`:
+
+| Arquivo | Conteúdo |
+|---------|----------|
+| `ansible/ansible.cfg` | Configuração do Ansible: inventário, usuário `vagrant`, chave SSH e `host_key_checking` desligado |
+| `ansible/inventory.ini` | Grupo `app` com a `vm2` (`192.168.56.11`) |
+| `ansible/configura-node.yaml` | Playbook que instala a aplicação na `vm2` |
+| `ansible/templates/clinica-api.service.j2` | Serviço systemd da API |
+
+A pasta é montada com permissões `755`/`644` porque o Ansible ignora o `ansible.cfg` de pastas com permissão de escrita para todos. Por isso os comandos devem ser executados de dentro de `~/ansible`.
+
+O playbook `configura-node.yaml`, executado contra a `vm2`:
+
+1. Instala `git`, `curl`, `acl` e o PostgreSQL pelo `apt`;
+2. Adiciona o repositório do NodeSource e instala o Node.js 20;
+3. Define a senha do usuário `postgres`, cria o banco `clinica` e carrega o `init.sql` (só na primeira vez);
+4. Clona o repositório em `/opt/clinica-medica-gc2` (branch `main`, variável `repo_versao`);
+5. Instala as dependências com `npm ci` e compila com `npm run build`;
+6. Registra e inicia o serviço `clinica-api` na porta 3000;
+7. Espera a rota `/health` responder `200`.
+
+O playbook pode ser executado várias vezes: na segunda execução, sem mudanças no repositório, ele não reinstala nem recompila nada.
+
+### Executar o playbook e verificar
+
+Dentro da `vm1` (`vagrant ssh vm1`):
+
+```bash
+cd ~/ansible
+
+# confere a conexão com a vm2
+ansible app -m ping
+
+# instala a aplicação
+ansible-playbook configura-node.yaml
+```
+
+No `PLAY RECAP` final, a linha da `vm2` deve ter `unreachable=0` e `failed=0`. A última tarefa (`Aguarda a API responder em /health`) só passa se a API estiver no ar.
+
+Para conferir o serviço pela própria `vm1`:
+
+```bash
+ansible app -b -a "systemctl is-active clinica-api"   # active
+```
+
+Para instalar outra branch, passe a variável na linha de comando:
+
+```bash
+ansible-playbook configura-node.yaml -e repo_versao=feature/minha-branch
+```
+
+### Testar a aplicação
+
+Ainda na `vm1`, com `curl`:
+
+```bash
+curl -i http://192.168.56.11:3000/health
+curl -i http://192.168.56.11:3000/produtos
+```
+
+Ou com `wget`:
+
+```bash
+wget -qO- http://192.168.56.11:3000/produtos
+```
+
+A rota `/health` responde `{"status":"ok","timestamp":"..."}` e `/produtos` responde `200 OK` com os produtos de exemplo do `init.sql` (veja o passo 5 de [Passo a passo](#passo-a-passo)).
 
 ## Workflow de Git escolhido: GitHub Flow
 
@@ -463,9 +541,15 @@ O repositório conta com dois fluxos de trabalho automatizados configurados via 
 ├── tests/
 │   ├── health.test.ts          # Testes do endpoint /health
 │   └── produtos.test.ts        # Testes das rotas /produtos (100% de cobertura)
+├── ansible/
+│   ├── ansible.cfg             # Configuração do Ansible (montada na VM1)
+│   ├── inventory.ini           # Inventário com a VM2
+│   ├── configura-node.yaml     # Playbook: clona e instala a API na VM2
+│   └── templates/
+│       └── clinica-api.service.j2  # Serviço systemd da API
 ├── provision/
-│   ├── vm2-dependencias.sh     # Instala Node.js e PostgreSQL e prepara o banco na VM2
-│   └── vm2-aplicacao.sh        # Compila e executa a API na VM2
+│   ├── vm1-ansible.sh          # Instala o Ansible e gera a chave SSH na VM1
+│   └── vm2-chave-ssh.sh        # Autoriza a chave da VM1 na VM2
 ├── Vagrantfile                 # VMs vm1 e vm2 no VirtualBox
 ├── docker-compose.yml
 ├── Dockerfile
