@@ -1,0 +1,144 @@
+---
+# Clona a API na VM2, instala as dependências de execução (Node.js 20,
+# PostgreSQL e pacotes npm) e a executa como o serviço clinica-api.
+- name: Instala a API da clínica na VM2
+  hosts: app
+  become: true
+
+  vars:
+    repo_url: https://github.com/rillmind/clinica-medica-gc2.git
+    repo_versao: main
+    app_dir: /opt/clinica-medica-gc2
+    app_usuario: vagrant
+    app_porta: 3000
+    db_nome: clinica
+    db_senha: postgres
+
+  tasks:
+    - name: Instala os pacotes do sistema
+      ansible.builtin.apt:
+        name:
+          - acl # permite o become_user para usuários sem privilégio
+          - ca-certificates
+          - curl
+          - git
+          - postgresql
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Baixa a chave do repositório do NodeSource
+      ansible.builtin.get_url:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        dest: /etc/apt/keyrings/nodesource.asc
+        mode: "0644"
+
+    - name: Adiciona o repositório do Node.js 20
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_20.x nodistro main
+        filename: nodesource
+
+    - name: Instala o Node.js 20
+      ansible.builtin.apt:
+        name: nodejs
+        update_cache: true
+
+    - name: Inicia o PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Define a senha do usuário postgres
+      become_user: postgres
+      ansible.builtin.command: psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres PASSWORD '{{ db_senha }}';"
+      changed_when: false
+
+    - name: Cria a pasta da aplicação
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_usuario }}"
+        group: "{{ app_usuario }}"
+        mode: "0755"
+
+    - name: Clona o repositório
+      become_user: "{{ app_usuario }}"
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_versao }}"
+      register: repositorio
+      notify: Reinicia a API
+
+    - name: Verifica se o banco já existe
+      become_user: postgres
+      ansible.builtin.command: psql -tAc "SELECT 1 FROM pg_database WHERE datname = '{{ db_nome }}'"
+      register: banco
+      changed_when: false
+
+    # O init.sql insere dados de exemplo, então só roda quando o banco é criado.
+    - name: Cria o banco e carrega o init.sql
+      become_user: postgres
+      when: banco.stdout != "1"
+      block:
+        - name: Cria o banco
+          ansible.builtin.command: createdb {{ db_nome }}
+          changed_when: true
+
+        - name: Carrega o init.sql
+          ansible.builtin.command: psql -v ON_ERROR_STOP=1 -d {{ db_nome }} -f {{ app_dir }}/init.sql
+          changed_when: true
+
+    - name: Verifica se a aplicação já foi compilada
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/dist/server.js"
+      register: compilado
+
+    - name: Instala as dependências npm e compila
+      become_user: "{{ app_usuario }}"
+      when: repositorio.changed or not compilado.stat.exists
+      block:
+        - name: Instala as dependências npm
+          ansible.builtin.command: npm ci --ignore-scripts --include=dev
+          args:
+            chdir: "{{ app_dir }}"
+          changed_when: true
+
+        - name: Compila o TypeScript
+          ansible.builtin.command: npm run build
+          args:
+            chdir: "{{ app_dir }}"
+          changed_when: true
+          notify: Reinicia a API
+
+    - name: Registra o serviço da API
+      ansible.builtin.template:
+        src: templates/clinica-api.service.j2
+        dest: /etc/systemd/system/clinica-api.service
+        mode: "0644"
+      notify: Reinicia a API
+
+    - name: Habilita e inicia a API
+      ansible.builtin.systemd:
+        name: clinica-api
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Aplica as reinicializações pendentes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Aguarda a API responder em /health
+      ansible.builtin.uri:
+        url: http://localhost:{{ app_porta }}/health
+      register: health
+      until: health.status == 200
+      retries: 15
+      delay: 2
+
+  handlers:
+    - name: Reinicia a API
+      ansible.builtin.systemd:
+        name: clinica-api
+        state: restarted
+        daemon_reload: true
